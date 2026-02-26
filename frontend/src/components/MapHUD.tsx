@@ -42,7 +42,7 @@ export function MapHUD({
         </div>
         <div className="flex justify-between">
           <span>Tracker:</span>
-          <span>{trackerPresent ? "✅ Online" : "❌ Missing"}</span>
+          <span>{trackerPresent ? "Online" : "Missing"}</span>
         </div>
       </div>
 
