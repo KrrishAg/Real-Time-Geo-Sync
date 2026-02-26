@@ -8,7 +8,7 @@ export interface HUDProps {
 }
 
 export interface MapUIProps {
-  onMapReady: (map: any) => void;
+  onMapReady: (map: unknown) => void;
 }
 
 export type MapState = {

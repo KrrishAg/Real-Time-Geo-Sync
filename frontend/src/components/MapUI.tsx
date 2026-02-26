@@ -3,7 +3,11 @@ import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapUIProps } from "../types/map";
 
-function MapReadyEmitter({ onMapReady }: { onMapReady: (map: any) => void }) {
+function MapReadyEmitter({
+  onMapReady,
+}: {
+  onMapReady: (map: unknown) => void;
+}) {
   const map = useMap();
   // useMap() always returns the map instance synchronously inside MapContainer
   // We call onMapReady once

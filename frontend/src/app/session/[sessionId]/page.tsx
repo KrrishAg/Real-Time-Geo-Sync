@@ -36,11 +36,13 @@ export default function SessionPage({
   const isLockedRef = useRef(role === "tracked");
   const [isLocked, setIsLocked] = useState(role === "tracked");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
   const lastAppliedSeq = useRef<number>(-1);
   const seqRef = useRef<number>(0);
   const socket = useMemo(() => getSocket(), []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function applyRemoteState(state: any, force: boolean) {
     if (!mapRef.current) return;
     if (!force && (state.seq <= lastAppliedSeq.current || !isLockedRef.current))
@@ -102,6 +104,7 @@ export default function SessionPage({
   }, [sessionId, role, socket]);
 
   const bindMap = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (map: any) => {
       mapRef.current = map;
       map.on("move", () => {
