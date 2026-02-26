@@ -1,45 +1,142 @@
 import express from "express";
+import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import { createServer } from "http";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.get("/health", (_, res) => res.json({ ok: true }));
 
-const httpServer = createServer(app);
-const io = new Server({
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: true, credentials: true },
+  transports: ["websocket"],
 });
 
-io.on("connection", (socket) => {
-  console.log("User Connected:", socket.id);
+const sessions = new Map();
 
-  // Join a specific room based on Session ID
-  socket.on("join-session", (sessionId) => {
-    console.log("Session joined", sessionId);
-    socket.join(sessionId);
+//  sessions = sessionId => {
+//    trackerSocketId: string | null,
+//    trackedSocketIds: Set<string>,
+//    lastState: { seq, ts, center:{lat,lng}, zoom }
+//  }
+
+function getOrCreateSession(sessionId) {
+  if (!sessions.has(sessionId)) {
+    sessions.set(sessionId, {
+      trackerSocketId: null,
+      trackedSocketIds: new Set(),
+      lastState: null,
+    });
+  }
+  return sessions.get(sessionId);
+}
+
+io.on("connection", (socket) => {
+  socket.data.sessionId = null;
+  socket.data.role = null;
+
+  socket.on("session:join", ({ sessionId, role }) => {
+    try {
+      if (!sessionId || !role) throw new Error("sessionId and role required");
+      if (role !== "tracker" && role !== "tracked")
+        throw new Error("Invalid role");
+
+      const s = getOrCreateSession(sessionId);
+
+      // Single tracker per session logic
+      if (role === "tracker") {
+        if (s.trackerSocketId && s.trackerSocketId !== socket.id) {
+          socket.emit("error", {
+            message: "Tracker already exists for this session.",
+          });
+          return;
+        }
+        s.trackerSocketId = socket.id;
+      } else {
+        s.trackedSocketIds.add(socket.id);
+      }
+
+      socket.data.sessionId = sessionId;
+      socket.data.role = role;
+
+      socket.join(sessionId);
+
+      socket.emit("session:joined", {
+        sessionId,
+        role,
+        trackerPresent: !!s.trackerSocketId,
+        state: s.lastState, // send last known map state for instant sync
+      });
+
+      io.to(sessionId).emit("session:roles", {
+        trackerSocketId: s.trackerSocketId,
+        trackedCount: s.trackedSocketIds.size,
+      });
+
+      io.to(sessionId).emit("tracker:status", { present: !!s.trackerSocketId });
+    } catch (e) {
+      socket.emit("error", { message: e.message || "Join failed" });
+    }
   });
 
-  // Listen for movement from Tracker
-  socket.on("update-map", (data) => {
-    // data: { sessionId, lat, lng, zoom }
-    socket.to(data.sessionId).emit("Map-moved", {
-      lat: data.lat,
-      lng: data.lng,
-      zoom: data.zoom,
-    });
+  socket.on("map:state", (payload) => {
+    const { sessionId, seq, ts, center, zoom } = payload || {};
+    const s = sessionId ? sessions.get(sessionId) : null;
+    if (!s) return;
+
+    // Only tracker can broadcast the main map
+    if (socket.id !== s.trackerSocketId) return;
+
+    // Inout validation
+    if (
+      typeof seq !== "number" ||
+      typeof ts !== "number" ||
+      !center ||
+      typeof center.lat !== "number" ||
+      typeof center.lng !== "number" ||
+      typeof zoom !== "number"
+    ) {
+      return;
+    }
+
+    s.lastState = { seq, ts, center, zoom };
+
+    // Broadcasting only to tracked clients 
+    socket.to(sessionId).emit("map:state", s.lastState);
   });
 
   socket.on("disconnect", () => {
-    console.log("User Disconnected:", socket.id);
+    const sessionId = socket.data.sessionId;
+    const role = socket.data.role;
+    if (!sessionId) return;
+
+    const s = sessions.get(sessionId);
+    if (!s) return;
+
+    if (role === "tracker" && s.trackerSocketId === socket.id) {
+      s.trackerSocketId = null;
+      io.to(sessionId).emit("tracker:status", { present: false });
+      io.to(sessionId).emit("session:roles", {
+        trackerSocketId: null,
+        trackedCount: s.trackedSocketIds.size,
+      });
+    }
+
+    if (role === "tracked") {
+      s.trackedSocketIds.delete(socket.id);
+      io.to(sessionId).emit("session:roles", {
+        trackerSocketId: s.trackerSocketId,
+        trackedCount: s.trackedSocketIds.size,
+      });
+    }
+
+    // Cleanup empty sessions
+    if (!s.trackerSocketId && s.trackedSocketIds.size === 0) {
+      sessions.delete(sessionId);
+    }
   });
 });
 
 const PORT = process.env.PORT || 4000;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Socket server on :${PORT}`));

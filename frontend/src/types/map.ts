@@ -1,16 +1,3 @@
-export interface MapData {
-  sessionId: string;
-  lat: number;
-  lng: number;
-  zoom: number;
-}
-
-export interface MapMoveData {
-  lat: number;
-  lng: number;
-  zoom: number;
-}
-
 export interface HUDProps {
   role: UserRole;
   hud: { lat: number; lng: number; zoom: number };
@@ -23,5 +10,12 @@ export interface HUDProps {
 export interface MapUIProps {
   onMapReady: (map: any) => void;
 }
+
+export type MapState = {
+  seq: number;
+  ts: number;
+  center: { lat: number; lng: number };
+  zoom: number;
+};
 
 export type UserRole = "tracker" | "tracked";

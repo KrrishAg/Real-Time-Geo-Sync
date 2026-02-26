@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState, use } from "react";
 import { useSearchParams } from "next/navigation";
 import { getSocket } from "@/src/lib/socket";
 import { MapHUD } from "@/src/components/MapHUD";
+import throttle from "lodash.throttle";
+import { MapState } from "@/src/types/map";
 
 // Import MapUI with SSR disabled because Leaflet needs 'window'
 const MapUI = dynamic(() => import("@/src/components/MapUI"), {
@@ -47,6 +49,21 @@ export default function SessionPage({
     });
     setHud({ lat: state.center.lat, lng: state.center.lng, zoom: state.zoom });
   }
+
+  const emitState = useMemo(
+    () =>
+      throttle((state: MapState) => {
+        socket.emit("map:state", { sessionId, ...state });
+      }, 60), // 60ms for ultra-smooth 16fps updates
+    [socket, sessionId],
+  );
+
+  //cleanup function
+  useEffect(() => {
+    return () => {
+      emitState.cancel();
+    };
+  }, [emitState]);
 
   useEffect(() => {
     socket.emit("session:join", { sessionId, role });
