@@ -42,6 +42,8 @@ io.on("connection", (socket) => {
       if (role !== "tracker" && role !== "tracked")
         throw new Error("Invalid role");
 
+      console.log("SESSION JOIN: ", socket.id);
+      
       const s = getOrCreateSession(sessionId);
 
       // Single tracker per session logic
@@ -102,7 +104,7 @@ io.on("connection", (socket) => {
 
     s.lastState = { seq, ts, center, zoom };
 
-    // Broadcasting only to tracked clients 
+    // Broadcasting only to tracked clients
     socket.to(sessionId).emit("map:state", s.lastState);
   });
 
@@ -139,4 +141,4 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Socket server on :${PORT}`));
+server.listen(PORT, () => console.log(`Socket server on: ${PORT}`));
