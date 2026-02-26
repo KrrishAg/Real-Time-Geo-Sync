@@ -23,7 +23,7 @@ export default function Home() {
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
             placeholder="e.g. room-123"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+            className="w-full text-black p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
           />
         </div>
 
