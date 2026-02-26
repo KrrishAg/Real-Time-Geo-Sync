@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useMap, useMapEvents } from "react-leaflet";
+import { Socket } from "socket.io-client";
+import { MapMoveData } from "../types/map";
 
 interface MapControllerProps {
   role: "tracker" | "tracked";
   sessionId: string;
-  socket: any;
-  onMove: (data: { lat: number; lng: number; zoom: number }) => void;
+  socket: Socket;
+  onMove: (data: MapMoveData) => void;
 }
 
 export default function MapController({
@@ -26,7 +28,9 @@ export default function MapController({
         },
       );
     }
-    return () => socket?.off("map-moved");
+    return () => {
+      socket?.off("map-moved");
+    };
   }, [role, socket, map]);
 
   // for Tracker: who emits the movements

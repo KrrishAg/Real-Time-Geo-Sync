@@ -16,7 +16,7 @@ export default function MapSync({ role, sessionId }: MapSyncProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    // Connect to your deployed backend URL
+    // Backend URL
     const s = io("http://localhost:4000");
 
     s.on("connect", () => {
