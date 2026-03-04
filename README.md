@@ -130,7 +130,7 @@ npm run dev
 
 The app is deployed on:
 
-- **Frontend** → [Vercel](https://vercel.com) — zero-config Next.js hosting
+- **Frontend** → [Vercel](https://vercel.com) — [Live Link](https://real-time-geo-sync.vercel.app/) 
 - **Backend** → [Render](https://render.com) — persistent WebSocket support on free tier
 
 ---
